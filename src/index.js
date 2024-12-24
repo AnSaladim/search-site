@@ -50,42 +50,54 @@ app.get("/search", (req, res) => {
     const words = query.match(/[а-яёa-z0-9]+/gi); // Разделение строки на слова
   
     if (!words || words.length === 0) {
-      res.send(`
-        <p>Введите одно или два слова для поиска.</p>
-        <a href="/">Назад</a>
-      `);
-      return;
+        res.send(`
+            <p>Введите одно или два слова для поиска.</p>
+            <a href="/">Назад</a>
+        `);
+        return;
     }
   
     let result = [];
   
     if (words.length === 1) {
-      // Поиск по одному слову
-      result = invertedIndex[words[0]] || [];
+        // Поиск по одному слову
+        result = invertedIndex[words[0]] || [];
     } else if (words.length === 2) {
-      // Поиск по двум словам
-      const [word1, word2] = words;
-      const files1 = invertedIndex[word1] || [];
-      const files2 = invertedIndex[word2] || [];
+        // Поиск по двум словам
+        const [word1, word2] = words;
+        const files1 = invertedIndex[word1] || [];
+        const files2 = invertedIndex[word2] || [];
   
-      // Находим пересечение массивов
-      result = files1.filter((file) => files2.includes(file));
+        // Находим пересечение массивов
+        result = files1.filter((file) => files2.includes(file));
     }
   
     if (result.length === 0) {
-      res.send(`
-        <p>Ни одного совпадения для запроса "${query}" не найдено.</p>
-        <a href="/">Назад</a>
-      `);
+        res.send(`
+            <p>Ни одного совпадения для запроса "${query}" не найдено.</p>
+            <a href="/">Назад</a>
+        `);
     } else {
-      const fileList = result.map((file) => `<li>${file}</li>`).join("");
-      res.send(`
-        <p>Результаты поиска для запроса "${query}":</p>
-        <ul>${fileList}</ul>
-        <a href="/">Назад</a>
-      `);
+        // Формируем результат с содержимым файлов
+        const fileList = result
+            .map((file) => {
+                const filePath = path.join(documentsPath, file);
+                const content = fs.readFileSync(filePath, "utf8");
+                return `
+                    <li>
+                        <strong>${file}</strong>
+                        <pre>${content}</pre>
+                    </li>`;
+            })
+            .join("");
+  
+        res.send(`
+            <p>Результаты поиска для запроса "${query}":</p>
+            <ul>${fileList}</ul>
+            <a href="/">Назад</a>
+        `);
     }
-  });
+});
 
 // Запуск сервера
 app.listen(PORT, () => {
