@@ -46,23 +46,46 @@ app.use(express.static(publicPath)); // Отдаем файлы из папки 
 
 // Обработка поиска
 app.get("/search", (req, res) => {
-  const query = req.query.query.toLowerCase();
-  const result = invertedIndex[query] || []; // Находим файлы или возвращаем пустой массив
-
-  if (result.length === 0) {
-    res.send(`
-      <p>Слово "${query}" не найдено в документах.</p>
-      <a href="/">Назад</a>
-    `);
-  } else {
-    const fileList = result.map((file) => `<li>${file}</li>`).join("");
-    res.send(`
-      <p>Слово "${query}" найдено в следующих файлах:</p>
-      <ul>${fileList}</ul>
-      <a href="/">Назад</a>
-    `);
-  }
-});
+    const query = req.query.query.toLowerCase().trim(); // Извлечение и очистка строки запроса
+    const words = query.match(/[а-яёa-z0-9]+/gi); // Разделение строки на слова
+  
+    if (!words || words.length === 0) {
+      res.send(`
+        <p>Введите одно или два слова для поиска.</p>
+        <a href="/">Назад</a>
+      `);
+      return;
+    }
+  
+    let result = [];
+  
+    if (words.length === 1) {
+      // Поиск по одному слову
+      result = invertedIndex[words[0]] || [];
+    } else if (words.length === 2) {
+      // Поиск по двум словам
+      const [word1, word2] = words;
+      const files1 = invertedIndex[word1] || [];
+      const files2 = invertedIndex[word2] || [];
+  
+      // Находим пересечение массивов
+      result = files1.filter((file) => files2.includes(file));
+    }
+  
+    if (result.length === 0) {
+      res.send(`
+        <p>Ни одного совпадения для запроса "${query}" не найдено.</p>
+        <a href="/">Назад</a>
+      `);
+    } else {
+      const fileList = result.map((file) => `<li>${file}</li>`).join("");
+      res.send(`
+        <p>Результаты поиска для запроса "${query}":</p>
+        <ul>${fileList}</ul>
+        <a href="/">Назад</a>
+      `);
+    }
+  });
 
 // Запуск сервера
 app.listen(PORT, () => {
